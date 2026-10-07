@@ -9,12 +9,26 @@ const API = 'https://sheets.googleapis.com/v4/spreadsheets';
 const b64url = (input) =>
   Buffer.from(input).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 
+/**
+ * Rebuilds a clean PEM from whatever was pasted into the env var: literal "\\n", real newlines, quotes,
+ * trailing commas, or even the whole service-account JSON. Prevents "DECODER routines::unsupported".
+ */
+export function normalizePrivateKey(raw) {
+  let k = String(raw || '').trim();
+  if (k.startsWith('{')) { try { k = JSON.parse(k).private_key || k; } catch { /* fall through */ } }
+  k = k.replace(/\\r/g, '').replace(/\\n/g, '\n').replace(/["',]/g, '');
+  const m = k.match(/-----BEGIN ([A-Z ]*PRIVATE KEY)-----([\s\S]*?)-----END \1-----/);
+  if (!m) return k;
+  const body = m[2].replace(/\s+/g, '');
+  return `-----BEGIN ${m[1]}-----\n${body.match(/.{1,64}/g).join('\n')}\n-----END ${m[1]}-----\n`;
+}
+
 export function sheetsConfig(env = process.env) {
   const email = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let key = env.GOOGLE_PRIVATE_KEY;
   const sheetId = env.GOOGLE_SHEET_ID;
   if (!email || !key || !sheetId) return null;
-  key = key.trim().replace(/^"|"$/g, '').replace(/\\n/g, '\n');
+  key = normalizePrivateKey(key);
   return { email, key, sheetId, tab: env.GOOGLE_SHEET_TAB || 'Orders' };
 }
 
