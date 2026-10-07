@@ -24,12 +24,32 @@ export async function readJson(req, maxBytes = 32 * 1024) {
   }
 }
 
+// Placeholder WebSocket class – realtime is never started by our functions.
+class NoRealtime { constructor() { throw new Error('Realtime is not available in functions.'); } }
+
+/** Accepts "https://ref.supabase.co", with/without trailing "/" or "/rest/v1"; returns the bare origin. */
+export function cleanSupabaseUrl(raw) {
+  const s = String(raw || '').trim().replace(/^["']|["']$/g, '');
+  if (!s) return '';
+  try { return new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`).origin; } catch { return ''; }
+}
+
 /** Server-side Supabase client using the SERVICE ROLE key. Never import this in browser code. */
 export function adminSupabase(env = process.env) {
-  const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
-  const key = env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = cleanSupabaseUrl(env.SUPABASE_URL || env.VITE_SUPABASE_URL);
+  const key = String(env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  try {
+    return createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      // Realtime is never used server-side. Node 20 has no native WebSocket, so give supabase-js a
+      // placeholder transport instead of letting its constructor throw.
+      realtime: { transport: NoRealtime },
+    });
+  } catch (e) {
+    console.error('[supabase] could not create client – check SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY:', e?.message);
+    return null;
+  }
 }
 
 /** Adapter used by the core functions (so they can be unit-tested with a fake). */

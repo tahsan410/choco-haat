@@ -23,6 +23,11 @@ export default async (req, context) => {
     return json(503, { ok: false, code: 'SERVER', message: 'Ordering is temporarily unavailable. Please contact us to place your order.' });
   }
 
-  const { status, body: out } = await createOrderCore({ input: body.data, db: supabaseDb(client), sheets: getSheets() });
-  return json(status, out);
+  try {
+    const { status, body: out } = await createOrderCore({ input: body.data, db: supabaseDb(client), sheets: getSheets() });
+    return json(status, out);
+  } catch (e) {
+    console.error('[create-order] unexpected error:', e?.stack || e);
+    return json(500, { ok: false, code: 'SERVER', message: 'We could not place your order right now. Please try again in a moment.' });
+  }
 };
