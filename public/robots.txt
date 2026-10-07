@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /.netlify/
+
+# Replace with your real domain after deploying:
+# Sitemap: https://your-site.netlify.app/sitemap.xml

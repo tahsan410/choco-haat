@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Replace "your-site.netlify.app" with your real domain. Product pages can be added later (or generated from the database). -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://your-site.netlify.app/</loc></url>
+  <url><loc>https://your-site.netlify.app/shop</loc></url>
+  <url><loc>https://your-site.netlify.app/about</loc></url>
+  <url><loc>https://your-site.netlify.app/contact</loc></url>
+  <url><loc>https://your-site.netlify.app/faq</loc></url>
+  <url><loc>https://your-site.netlify.app/track-order</loc></url>
+</urlset>
