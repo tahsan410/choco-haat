@@ -1,6 +1,35 @@
 // The hero's one memorable moment: a chocolate bar with a square snapped off,
 // half-unwrapped from gold foil. Pure SVG – no image requests, instant on mobile.
+import { useState } from 'react';
+
+// Soft edges on the left, top and bottom so the photo melts into the dark hero background.
+const FADE = 'linear-gradient(to right, transparent 0%, #000 26%), linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%)';
+const MASK = { WebkitMaskImage: FADE, maskImage: FADE, WebkitMaskComposite: 'source-in', maskComposite: 'intersect' };
+
+const V = typeof __ASSET_V__ === 'undefined' ? '' : `?v=${__ASSET_V__}`;
+
+/**
+ * Hero picture. Uses your own photo at `public/hero.jpg` (fades into the dark hero background on its left
+ * edge, so it works with any text on the left). If that file is missing, the built-in SVG illustration is shown.
+ */
 export default function HeroArt({ className = '' }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <HeroSvg className={className} />;
+  return (
+    <img
+      src={`/hero.jpg${V}`}
+      alt="Premium chocolate bars, truffles and cocoa pods with melted chocolate pouring"
+      width="529" height="509"
+      fetchpriority="high"
+      decoding="async"
+      onError={() => setFailed(true)}
+      className={`${className} rounded-3xl object-cover`}
+      style={MASK}
+    />
+  );
+}
+
+function HeroSvg({ className = '' }) {
   const cell = 74;
   const gap = 8;
   const cols = 4;
