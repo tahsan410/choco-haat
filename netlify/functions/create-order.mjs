@@ -1,6 +1,6 @@
 // POST /.netlify/functions/create-order
 // Validates → prices from the database (never from the browser) → stores → appends to Google Sheets.
-import { json, readJson, clientIp, adminSupabase, supabaseDb } from '../lib/http.js';
+import { json, readJson, clientIp, adminSupabase, supabaseDb, bearer } from '../lib/http.js';
 import { rateLimit } from '../lib/rateLimit.js';
 import { getSheets } from '../lib/sheets.js';
 import { createOrderCore } from '../lib/orderCore.js';
@@ -24,7 +24,11 @@ export default async (req, context) => {
   }
 
   try {
-    const { status, body: out } = await createOrderCore({ input: body.data, db: supabaseDb(client), sheets: getSheets() });
+    const db = supabaseDb(client);
+    // Optional: a signed-in customer's token links the order to their account. Guests have no token.
+    let userId = null;
+    try { userId = await db.userIdFromToken(bearer(req)); } catch { userId = null; }
+    const { status, body: out } = await createOrderCore({ input: body.data, db, sheets: getSheets(), userId });
     return json(status, out);
   } catch (e) {
     console.error('[create-order] unexpected error:', e?.stack || e);
