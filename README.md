@@ -51,6 +51,16 @@ You need free accounts on **Supabase**, **GitHub**, **Netlify** and **Google Clo
    ```
    Only users listed in `admins` can read orders or change anything – this is enforced by the database (RLS), not just the UI. To add another admin repeat both steps.
 
+### Customer accounts (optional email + password login)
+
+Customers can create an account to see all their orders, save delivery details and re-order. Guests can still check out without one.
+
+* **Already ran `schema.sql` before this feature?** Run `supabase/migrations/002_customer_accounts.sql` once in Supabase → SQL Editor (safe to run again). New installs get it from `schema.sql` automatically.
+* **Supabase → Authentication → Providers → Email** is used. Choose whether **Confirm email** is on (customers must click a link before they can sign in) or off (instant sign-up; easier, but allows throw-away addresses).
+* **Supabase → Authentication → URL Configuration:** set **Site URL** to your live site (e.g. `https://chocohaat.netlify.app`) and add `https://chocohaat.netlify.app/account/reset` and `https://chocohaat.netlify.app/account` to **Redirect URLs**, otherwise confirmation / password-reset links will not return to your shop.
+* Customers only ever read their own orders, through the `get_my_orders()` database function (no cost prices or internal data). Orders placed while signed in are linked by the `create-order` function using the customer's token; earlier guest orders can be added with Order ID + phone (`claim-order` function).
+* Customer accounts and admin accounts are separate: only users listed in `public.admins` can open `/admin`.
+
 ### 3. Google Sheets setup
 1. Go to <https://console.cloud.google.com> → create a project (e.g. "choco-haat").
 2. **APIs & Services → Library** → enable **Google Sheets API**.
@@ -96,6 +106,13 @@ SPA routing is handled by the redirect in `netlify.toml`, so refreshing `/shop`,
 ### Local development with the real backend
 `npm i -g netlify-cli`, fill `.env` with the Supabase/Google values, then `netlify dev` (serves the site and the functions on one port).
 
+## Changing the logo / favicon / share image
+
+**Header & footer logo:** add your logo as `public/logo.png` (or `public/logo.svg`) – square or nearly square works best, about 128×128 px or larger, transparent background. It replaces the small chocolate icon next to the shop name automatically; delete the file to go back to the built-in icon. The shop name text next to it comes from Admin → Settings → Store name.
+
+
+Replace `public/favicon.svg` (browser-tab icon) and `public/og-image.png` (1200×630 image shown when the link is shared on Facebook / WhatsApp), commit and push. Every build adds a fresh `?v=` to these URLs so browsers see the new files; set `VITE_SITE_URL` (your full https site address) so the share image gets an absolute URL. If an old image still shows: hard-refresh the browser (Ctrl+Shift+R) or open the site in a private window, and re-scrape the link in Facebook's *Sharing Debugger* (WhatsApp keeps its own copy for a few days).
+
 ## Security model
 * **No secrets in the browser.** Only the Supabase *anon* key is public. The service-role key and Google credentials live in Netlify environment variables and are used only by functions.
 * **Prices are never trusted from the browser.** `create-order` forwards only product IDs + quantities to the database function `place_order()`, which locks the product rows, re-reads price and stock, applies delivery settings and coupons, creates the order and reduces stock in one transaction.
@@ -115,7 +132,7 @@ src/
   lib/                                 format, search, analytics, seo, supabase client
 shared/                                logic used by BOTH browser and functions
   constants.js  orderLogic.js  demoCatalog.js
-netlify/functions/                     create-order · track-order · sheet-sync
+netlify/functions/                     create-order · track-order · claim-order · sheet-sync
 netlify/lib/                           order core, Sheets client, rate limit
 supabase/                              schema.sql, seed.sql (demo data)
 tests/                                 node:test unit tests
@@ -130,3 +147,7 @@ tests/                                 node:test unit tests
 * **Admin login says "does not have admin access"** – add the user to `public.admins` (step 2).
 * **Order is in Admin but not in Google Sheets** – check the red cloud icon on the order; common causes: sheet not shared with the service-account email, wrong `GOOGLE_SHEET_ID`, key pasted without `\n` sequences. Fix it, then **Retry sync** (order page or Settings → Retry all).
 * **Product images** – upload in Admin → Products (stored in Supabase Storage bucket `product-images`) or paste an image link.
+
+## bKash / Nagad payments
+
+Checkout offers bKash and Nagad (manual "Send Money"). The customer sends the total to your number, then enters their own number and the Transaction ID. Set your numbers in **Admin → Settings → Payment numbers**. In **Admin → Orders → (order)** the TrxID is shown so you can verify it in your bKash/Nagad app before confirming. Existing databases: run `supabase/migrations/003_mobile_payments.sql` once in the Supabase SQL Editor. Cash on Delivery is disabled in `shared/constants.js` (set `enabled: true` to bring it back).

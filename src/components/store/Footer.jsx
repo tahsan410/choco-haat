@@ -47,7 +47,7 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container-x flex flex-col items-center justify-between gap-2 py-5 text-xs text-cocoa-300 sm:flex-row">
           <p>© {new Date().getFullYear()} {s.store_name}. All rights reserved.</p>
-          <p className="flex items-center gap-4"><span>Cash on Delivery</span><Link to="/admin" className="hover:text-white">Admin</Link></p>
+          <p className="flex items-center gap-4"><span>bKash · Nagad</span><Link to="/admin" className="hover:text-white">Admin</Link></p>
         </div>
       </div>
     </footer>

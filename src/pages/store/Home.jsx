@@ -63,7 +63,7 @@ export default function Home() {
   const { loading, error, refresh, products, categories, featured, bestSellerProducts, newArrivals, settings } = useCatalog();
   usePageMeta({
     title: `Buy Chocolate Online in Bangladesh | ${settings.store_name}`,
-    description: 'Buy imported chocolate online in Bangladesh – KitKat, Kinder, Ferrero, Toblerone, Lindt and more at affordable prices, delivered to your door with cash on delivery.',
+    description: 'Buy imported chocolate online in Bangladesh – KitKat, Kinder, Ferrero, Toblerone, Lindt and more at affordable prices, delivered to your door. Pay with bKash or Nagad.',
     path: '/',
   });
 

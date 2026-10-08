@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, ShoppingBag } from 'lucide-react';
+import { Lock, ShoppingBag, Copy, Check } from 'lucide-react';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -29,10 +29,17 @@ export default function Checkout() {
   usePageMeta({ title: `Checkout | ${settings.store_name}`, description: 'Complete your chocolate order.', noindex: true });
 
   const methods = PAYMENT_METHODS.filter((m) => m.enabled);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', division: '', district: '', upazila: '', note: '', paymentMethod: methods[0].id, website: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', division: '', district: '', upazila: '', note: '', paymentMethod: methods[0].id, paymentSender: '', paymentTrxId: '', website: '' });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+
+  const [copied, setCopied] = useState(false);
+  const selected = methods.find((m) => m.id === form.paymentMethod) || methods[0];
+  const payNumber = selected?.settingKey ? String(settings[selected.settingKey] || '').trim() : '';
+  const copyNumber = async () => {
+    try { await navigator.clipboard.writeText(payNumber); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* clipboard blocked – number is visible anyway */ }
+  };
 
   const set = (k) => (e) => {
     const value = e.target.value;
@@ -143,6 +150,31 @@ export default function Checkout() {
                 </label>
               ))}
             </div>
+            {selected?.mobile && (
+              <div className="mt-4 rounded-xl border p-4" style={{ borderColor: selected.color, background: `${selected.color}0F` }}>
+                <p className="text-sm font-semibold text-cocoa-800">How to pay with {selected.label}</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-cocoa-700">
+                  <li>Open your {selected.label} app and choose <strong>Send Money</strong>.</li>
+                  <li>Send <strong>{formatTaka(cart.total)}</strong> to the number below.</li>
+                  <li>Copy the <strong>Transaction ID</strong> (TrxID) from the confirmation and enter it here.</li>
+                </ol>
+                {payNumber ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <span className="rounded-lg bg-white px-3 py-2 font-display text-xl font-semibold tracking-wide text-cocoa-900 shadow-sm">{payNumber}</span>
+                    <button type="button" onClick={copyNumber} className="inline-flex items-center gap-1.5 rounded-lg border border-cocoa-200 bg-white px-3 py-2 text-sm font-medium text-cocoa-700 hover:bg-cream-100">
+                      {copied ? <Check className="h-4 w-4 text-emerald-600" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}{copied ? 'Copied' : 'Copy number'}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm font-medium text-red-700">{selected.label} number is not set yet. Please call {settings.contact_phone} to place this order.</p>
+                )}
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <Input label={`Your ${selected.label} number`} required type="tel" inputMode="tel" value={form.paymentSender} onChange={set('paymentSender')} error={errors.paymentSender} placeholder="01XXXXXXXXX" hint="The number you sent money from." />
+                  <Input label="Transaction ID (TrxID)" required value={form.paymentTrxId} onChange={(e) => set('paymentTrxId')({ target: { value: e.target.value.toUpperCase() } })} error={errors.paymentTrxId} placeholder="e.g. 9H7K2LM4QP" autoCapitalize="characters" autoComplete="off" />
+                </div>
+                <p className="mt-3 text-xs text-cocoa-600">We confirm your payment before shipping. Wrong or reused TrxIDs delay the order.</p>
+              </div>
+            )}
             <div className="mt-5">
               <Input label="Coupon code (optional)" value={cart.coupon} onChange={(e) => cart.setCoupon(e.target.value.toUpperCase())} placeholder="Enter code" wrapClass="max-w-xs" hint="Checked when you place the order." />
             </div>

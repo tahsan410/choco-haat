@@ -77,9 +77,10 @@ export function createSheetsClient(cfg, fetchFn = fetch) {
     const meta = await call('?fields=sheets.properties.title');
     const exists = (meta.sheets || []).some((s) => s.properties?.title === cfg.tab);
     if (!exists) await call(':batchUpdate', { method: 'POST', body: { requests: [{ addSheet: { properties: { title: cfg.tab } } }] } });
-    const head = await call(`/values/${encodeURIComponent(range('A1:M1'))}`);
-    if (!head.values || !head.values.length) {
-      await call(`/values/${encodeURIComponent(range('A1:M1'))}?valueInputOption=RAW`, { method: 'PUT', body: { values: [SHEET_HEADERS] } });
+    const head = await call(`/values/${encodeURIComponent(range('A1:O1'))}`);
+    // Write headers when empty, or when an older sheet is missing the newer payment columns.
+    if (!head.values || !head.values.length || head.values[0].length < SHEET_HEADERS.length) {
+      await call(`/values/${encodeURIComponent(range('A1:O1'))}?valueInputOption=RAW`, { method: 'PUT', body: { values: [SHEET_HEADERS] } });
     }
     tabReady = true;
   }
@@ -98,10 +99,10 @@ export function createSheetsClient(cfg, fetchFn = fetch) {
       const row = orderToSheetRow(order, items);
       const existing = await findRow(order.order_number);
       if (existing) {
-        await call(`/values/${encodeURIComponent(range(`A${existing}:M${existing}`))}?valueInputOption=USER_ENTERED`, { method: 'PUT', body: { values: [row] } });
+        await call(`/values/${encodeURIComponent(range(`A${existing}:O${existing}`))}?valueInputOption=USER_ENTERED`, { method: 'PUT', body: { values: [row] } });
         return;
       }
-      await call(`/values/${encodeURIComponent(range('A:M'))}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, { method: 'POST', body: { values: [row] } });
+      await call(`/values/${encodeURIComponent(range('A:O'))}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, { method: 'POST', body: { values: [row] } });
     },
     /** Returns false when the order has no row yet. */
     async updateStatus(orderNumber, status) {

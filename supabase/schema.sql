@@ -85,6 +85,8 @@ create table if not exists public.orders (
   total            numeric(12,2) not null,
   coupon_code      text,
   payment_method   text not null default 'COD',
+  payment_sender   text,   -- bKash / Nagad number the customer paid from
+  payment_trx_id   text,   -- bKash / Nagad Transaction ID (verify in your bKash/Nagad app)
   status           text not null default 'Pending'
                    check (status in ('Pending','Confirmed','Processing','Shipped','Delivered','Cancelled')),
   is_archived      boolean not null default false,
@@ -313,13 +315,14 @@ begin
 
   insert into public.orders (
     order_number, customer_name, phone, email, address, division, district, upazila, delivery_note,
-    subtotal, delivery_charge, discount, total, coupon_code, payment_method, status
+    subtotal, delivery_charge, discount, total, coupon_code, payment_method, payment_sender, payment_trx_id, status
   ) values (
     v_number,
     payload->>'name', v_phone, nullif(payload->>'email', ''), payload->>'address',
     payload->>'division', v_district, payload->>'upazila', nullif(payload->>'note', ''),
     v_subtotal, v_delivery, v_discount, v_total, v_code,
-    coalesce(nullif(payload->>'payment_method', ''), 'COD'), 'Pending'
+    coalesce(nullif(payload->>'payment_method', ''), 'COD'),
+    nullif(payload->>'payment_sender', ''), nullif(upper(payload->>'payment_trx_id'), ''), 'Pending'
   ) returning * into v_order;
 
   insert into public.order_items (order_id, product_id, product_name, unit_price, unit_cost, quantity, line_total)
@@ -470,3 +473,59 @@ insert into public.settings (key, value) values ('store', jsonb_build_object(
   'min_order_amount', 0,
   'low_stock_threshold', 5
 )) on conflict (key) do nothing;
+
+-- ----------------------------------------------------------------------------
+-- Customer accounts (also available as supabase/migrations/002_customer_accounts.sql)
+-- ----------------------------------------------------------------------------
+
+-- 1) Link orders to a customer account (guest orders keep user_id = null)
+alter table public.orders add column if not exists user_id uuid references auth.users(id) on delete set null;
+create index if not exists orders_user_idx on public.orders (user_id, created_at desc);
+
+-- 2) Saved delivery details (each customer can only see / edit their own row)
+create table if not exists public.customer_profiles (
+  user_id    uuid primary key references auth.users(id) on delete cascade,
+  full_name  text,
+  phone      text,
+  address    text,
+  division   text,
+  district   text,
+  upazila    text,
+  updated_at timestamptz not null default now()
+);
+alter table public.customer_profiles enable row level security;
+
+drop policy if exists customer_profiles_own on public.customer_profiles;
+create policy customer_profiles_own on public.customer_profiles for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- 3) "My orders": a SECURITY DEFINER function that returns ONLY customer-safe fields
+--    (no cost prices, no internal sync info). Customers get no direct access to the orders table.
+create or replace function public.get_my_orders()
+returns jsonb
+language sql stable security definer
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(x.o order by x.created_at desc), '[]'::jsonb)
+  from (
+    select o.created_at,
+      jsonb_build_object(
+        'order_number', o.order_number, 'status', o.status, 'created_at', o.created_at,
+        'customer_name', o.customer_name, 'phone', o.phone, 'address', o.address,
+        'upazila', o.upazila, 'district', o.district, 'division', o.division,
+        'payment_method', o.payment_method, 'payment_trx_id', o.payment_trx_id, 'subtotal', o.subtotal,
+        'delivery_charge', o.delivery_charge, 'discount', o.discount, 'total', o.total,
+        'items', (
+          select coalesce(jsonb_agg(jsonb_build_object(
+            'product_id', i.product_id, 'product_name', i.product_name, 'quantity', i.quantity,
+            'unit_price', i.unit_price, 'line_total', i.line_total) order by i.product_name), '[]'::jsonb)
+          from public.order_items i where i.order_id = o.id)
+      ) as o
+    from public.orders o
+    where auth.uid() is not null and o.user_id = auth.uid()
+    order by o.created_at desc
+    limit 200
+  ) x;
+$$;
+revoke all on function public.get_my_orders() from public, anon;
+grant execute on function public.get_my_orders() to authenticated;

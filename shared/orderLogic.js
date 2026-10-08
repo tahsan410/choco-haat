@@ -59,8 +59,19 @@ export function validateOrderInput(raw, { requireUuidIds = false } = {}) {
 
   const note = cleanText(r.note, LIMITS.note);
 
-  const paymentMethod = String(r.paymentMethod || 'COD');
-  if (!PAYMENT_METHODS.some((m) => m.id === paymentMethod && m.enabled)) errors.paymentMethod = 'Select a payment method.';
+  const paymentMethod = String(r.paymentMethod || '');
+  const method = PAYMENT_METHODS.find((m) => m.id === paymentMethod && m.enabled);
+  if (!method) errors.paymentMethod = 'Select a payment method.';
+
+  // bKash / Nagad: the customer sends money first, then tells us the number they paid from + the Transaction ID.
+  let paymentSender = '';
+  let paymentTrxId = '';
+  if (method?.mobile) {
+    paymentSender = normalizePhone(r.paymentSender) || '';
+    if (!paymentSender) errors.paymentSender = `Enter the ${method.label} number you paid from (01XXXXXXXXX).`;
+    paymentTrxId = String(r.paymentTrxId ?? '').replace(/\s+/g, '').toUpperCase();
+    if (!/^[A-Z0-9]{6,20}$/.test(paymentTrxId)) errors.paymentTrxId = 'Enter the Transaction ID from your payment message (letters and numbers, 6–20 characters).';
+  }
 
   const couponCode = cleanText(r.couponCode, LIMITS.coupon).toUpperCase();
 
@@ -92,7 +103,7 @@ export function validateOrderInput(raw, { requireUuidIds = false } = {}) {
   return {
     ok,
     errors,
-    value: ok ? { name, phone, email, address, division, district, upazila, note, paymentMethod, couponCode, items } : null,
+    value: ok ? { name, phone, email, address, division, district, upazila, note, paymentMethod, paymentSender, paymentTrxId, couponCode, items } : null,
   };
 }
 
@@ -218,6 +229,8 @@ export function orderToSheetRow(order, items) {
     Number(order.total),
     order.payment_method,
     order.status,
+    order.payment_sender || '',
+    order.payment_trx_id || '',
   ];
   if (row.length !== SHEET_HEADERS.length) throw new Error('Sheet row/header mismatch');
   return row.map((c) => (typeof c === 'number' ? c : safeCell(c)));
@@ -236,6 +249,7 @@ export function publicOrder(order, items) {
     district: order.district,
     division: order.division,
     payment_method: order.payment_method,
+    payment_trx_id: order.payment_trx_id || null,
     subtotal: Number(order.subtotal),
     delivery_charge: Number(order.delivery_charge),
     discount: Number(order.discount || 0),

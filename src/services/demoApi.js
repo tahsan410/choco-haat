@@ -62,7 +62,7 @@ const currentCustomerId = () => store.get(CUSTOMER_KEY) || null;
 const customerView = (c) => ({ id: c.id, email: c.email, name: c.name || '' });
 const customerOrderView = (o) => ({
   order_number: o.order_number, status: o.status, created_at: o.created_at, customer_name: o.customer_name, phone: o.phone,
-  address: o.address, upazila: o.upazila, district: o.district, division: o.division, payment_method: o.payment_method,
+  address: o.address, upazila: o.upazila, district: o.district, division: o.division, payment_method: o.payment_method, payment_trx_id: o.payment_trx_id || null,
   subtotal: o.subtotal, delivery_charge: o.delivery_charge, discount: o.discount || 0, total: o.total,
   items: o.items.map((i) => ({ product_id: i.product_id, product_name: i.product_name, quantity: i.quantity, unit_price: i.unit_price, line_total: i.line_total })),
 });
@@ -141,7 +141,7 @@ export const demoApi = {
       customer_name: c.name, phone: c.phone, email: c.email || null, address: c.address,
       division: c.division, district: c.district, upazila: c.upazila, delivery_note: c.note || null,
       subtotal: priced.subtotal, delivery_charge: priced.deliveryCharge, discount: priced.discount, total: priced.total,
-      coupon_code: coupon ? coupon.code : null, payment_method: c.paymentMethod, status: 'Pending', is_archived: false,
+      coupon_code: coupon ? coupon.code : null, payment_method: c.paymentMethod, payment_sender: c.paymentSender || null, payment_trx_id: c.paymentTrxId || null, status: 'Pending', is_archived: false,
       user_id: currentCustomerId(),
       sheet_synced: false, sheet_sync_error: 'Demo mode – Google Sheets sync is disabled.',
       created_at: nowIso(), updated_at: nowIso(),
@@ -406,7 +406,7 @@ export const demoApi = {
         id, order_number: formatOrderNumber(day, s.counters[day]), customer_name: names[n % names.length],
         phone: `017${String(10000000 + Math.floor(Math.random() * 89999999))}`, email: null, address: 'Sample address, Demo Road', division, district, upazila: 'Sadar',
         delivery_note: null, subtotal, delivery_charge: delivery, discount: 0, total: subtotal + delivery, coupon_code: null,
-        payment_method: 'COD', status: statuses[Math.floor(Math.random() * statuses.length)], is_archived: false,
+        payment_method: 'BKASH', payment_sender: '01711000000', payment_trx_id: 'DEMO' + Math.random().toString(36).slice(2, 8).toUpperCase(), status: statuses[Math.floor(Math.random() * statuses.length)], is_archived: false,
         sheet_synced: false, sheet_sync_error: 'Demo mode', created_at: when.toISOString(), updated_at: when.toISOString(),
         items: items.map((i) => ({ ...i, order_id: id })),
       });

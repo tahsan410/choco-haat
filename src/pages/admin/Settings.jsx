@@ -70,6 +70,12 @@ export default function Settings() {
             <Input label="Address / location" value={f.address_line} onChange={set('address_line')} />
           </div>
         </Panel>
+        <Panel title="Payment numbers (bKash / Nagad)">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="bKash number" value={f.bkash_number || ''} onChange={set('bkash_number')} placeholder="01XXXXXXXXX" hint="Customers Send Money to this number. Shown at checkout." />
+            <Input label="Nagad number" value={f.nagad_number || ''} onChange={set('nagad_number')} placeholder="01XXXXXXXXX" hint="Leave empty if you don't use Nagad yet." />
+          </div>
+        </Panel>
         <div><Button type="submit" size="lg" loading={saving}><Save className="h-4 w-4" /> Save settings</Button></div>
       </form>
 

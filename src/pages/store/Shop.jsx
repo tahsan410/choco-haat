@@ -29,7 +29,7 @@ export default function Shop() {
   const category = catBySlug.get(categorySlug);
   usePageMeta({
     title: `${category ? `${category.name} chocolates` : 'Shop chocolates online'} | ${settings.store_name}`,
-    description: `Browse ${category ? category.name : 'imported'} chocolates at affordable prices in Bangladesh. Cash on delivery across the country.`,
+    description: `Browse ${category ? category.name : 'imported'} chocolates at affordable prices in Bangladesh. Pay with bKash or Nagad, delivery across the country.`,
   });
 
   const set = (key, value) => {

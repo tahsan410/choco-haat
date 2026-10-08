@@ -4,7 +4,7 @@ export const TRUST_ITEMS = [
   { icon: BadgeCheck, title: 'Authentic products', text: 'Sourced from trusted suppliers, sealed in original packs.' },
   { icon: Tag, title: 'Competitive prices', text: 'Fair prices every day – compare with the market.' },
   { icon: Truck, title: 'Fast delivery', text: 'Doorstep delivery across all 64 districts.' },
-  { icon: ShieldCheck, title: 'Secure ordering', text: 'Cash on delivery. Pay only when it arrives.' },
+  { icon: ShieldCheck, title: 'Secure ordering', text: 'Pay easily with bKash or Nagad.' },
 ];
 
 export default function TrustBar({ compact = false }) {

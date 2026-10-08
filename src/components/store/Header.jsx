@@ -43,7 +43,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-cocoa-100/80 bg-cream/90 backdrop-blur-md">
       <div className="hidden bg-cocoa-800 text-center text-xs text-cocoa-100 sm:block">
-        <p className="container-x py-1.5">Cash on delivery across Bangladesh · Call {settings.contact_phone}</p>
+        <p className="container-x py-1.5">bKash &amp; Nagad accepted · Delivery across Bangladesh · Call {settings.contact_phone}</p>
       </div>
       <div className="container-x flex h-16 items-center gap-3">
         <button className="grid h-11 w-11 place-items-center rounded-full text-cocoa-800 hover:bg-cocoa-50 lg:hidden" onClick={() => setMenu((m) => !m)} aria-label={menu ? 'Close menu' : 'Open menu'} aria-expanded={menu}>

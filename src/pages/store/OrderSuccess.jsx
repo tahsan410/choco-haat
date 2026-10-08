@@ -8,6 +8,7 @@ import { useCustomer } from '../../context/CustomerContext.jsx';
 import { formatTaka, formatDateTime } from '../../lib/format.js';
 import { usePageMeta } from '../../lib/seo.js';
 import { LAST_ORDER_KEY } from './Checkout.jsx';
+import { paymentLabel } from '../../../shared/constants.js';
 
 export default function OrderSuccess() {
   const { state } = useLocation();
@@ -31,7 +32,7 @@ export default function OrderSuccess() {
         <div className="text-center">
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle2 className="h-9 w-9" aria-hidden /></span>
           <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight sm:text-4xl">Order Placed Successfully!</h1>
-          <p className="mt-2 text-cocoa-600">Thank you, {order.customer_name.split(' ')[0]}. We&apos;ll call you shortly to confirm your order.</p>
+          <p className="mt-2 text-cocoa-600">Thank you, {order.customer_name.split(' ')[0]}. {['BKASH','NAGAD'].includes(order.payment_method) ? `We’ll verify your ${paymentLabel(order.payment_method)} payment and call you to confirm your order.` : 'We’ll call you shortly to confirm your order.'}</p>
         </div>
 
         <div className="mt-8 rounded-2xl border-2 border-dashed border-caramel-400 bg-caramel-50 p-5 text-center">
@@ -46,7 +47,7 @@ export default function OrderSuccess() {
             <div><p className="text-xs font-semibold text-cocoa-500">Customer</p><p className="mt-1 font-medium">{order.customer_name}</p><p className="text-sm text-cocoa-600">{order.phone}</p></div>
             <div><p className="text-xs font-semibold text-cocoa-500">Delivery to</p><p className="mt-1 text-sm text-cocoa-800">{order.address}, {order.upazila}, {order.district}, {order.division}</p></div>
             <div><p className="text-xs font-semibold text-cocoa-500">Status</p><div className="mt-1"><StatusBadge status={order.status} /></div></div>
-            <div><p className="text-xs font-semibold text-cocoa-500">Placed</p><p className="mt-1 text-sm">{formatDateTime(order.created_at)} · {order.payment_method === 'COD' ? 'Cash on Delivery' : order.payment_method}</p></div>
+            <div><p className="text-xs font-semibold text-cocoa-500">Placed</p><p className="mt-1 text-sm">{formatDateTime(order.created_at)} · {paymentLabel(order.payment_method)}</p></div>
           </div>
           <ul className="divide-y divide-cocoa-100">
             {order.items.map((i) => (

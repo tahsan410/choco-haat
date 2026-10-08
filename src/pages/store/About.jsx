@@ -9,7 +9,7 @@ export default function About() {
   const values = [
     { icon: BadgeCheck, title: 'Authenticity first', text: 'We sell sealed, original products and show expiry information so you always know what you are buying.' },
     { icon: Tag, title: 'Honest pricing', text: 'We aim to keep prices fair every day. When we show a market price next to ours, it is a real comparison – never an inflated one.' },
-    { icon: Truck, title: 'Reliable delivery', text: 'Carefully packed and sent to all 64 districts, with cash on delivery so you pay only when it arrives.' },
+    { icon: Truck, title: 'Reliable delivery', text: 'Carefully packed and sent to all 64 districts, with easy bKash and Nagad payment.' },
     { icon: Heart, title: 'Made for sharing', text: 'From a single KitKat to a gift box for Eid, birthdays and weddings – chocolate is better together.' },
   ];
   return (

@@ -17,9 +17,13 @@ export const TIMELINE_LABELS = {
 };
 
 export const PAYMENT_METHODS = [
-  // Add more methods here later (e.g. bKash, Nagad, card). `enabled` controls checkout visibility.
-  { id: 'COD', label: 'Cash on Delivery', description: 'Pay when your order arrives.', enabled: true },
+  // `enabled` controls checkout visibility. COD stays defined (disabled) so older orders still display.
+  { id: 'BKASH', label: 'bKash', description: 'Send Money to our bKash number, then enter the Transaction ID.', enabled: true, mobile: true, settingKey: 'bkash_number', color: '#E2136E' },
+  { id: 'NAGAD', label: 'Nagad', description: 'Send Money to our Nagad number, then enter the Transaction ID.', enabled: true, mobile: true, settingKey: 'nagad_number', color: '#F6921E' },
+  { id: 'COD', label: 'Cash on Delivery', description: 'Pay when your order arrives.', enabled: false },
 ];
+
+export const paymentLabel = (id) => (PAYMENT_METHODS.find((m) => m.id === id)?.label) || id || '';
 
 export const LIMITS = {
   maxLines: 30,
@@ -38,6 +42,8 @@ export const DEFAULT_SETTINGS = {
   contact_phone: '01700-000000',
   contact_email: 'hello@example.com',
   whatsapp_number: '',
+  bkash_number: '', // personal/merchant bKash number customers send money to
+  nagad_number: '',
   address_line: 'Bangladesh',
   // Delivery – editable in Admin → Settings. Nothing is hard-coded elsewhere.
   inside_city_district: 'Sylhet',
@@ -80,4 +86,6 @@ export const SHEET_HEADERS = [
   'Total',
   'Payment Method',
   'Order Status',
+  'Paid From',
+  'Transaction ID',
 ];

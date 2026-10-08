@@ -14,6 +14,7 @@ import { BD_LOCATIONS } from '../../../shared/constants.js';
 import { normalizePhone } from '../../../shared/orderLogic.js';
 import { formatTaka, formatDateTime } from '../../lib/format.js';
 import { usePageMeta } from '../../lib/seo.js';
+import { paymentLabel } from '../../../shared/constants.js';
 
 function OrderCard({ order, onReorder }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +46,7 @@ function OrderCard({ order, onReorder }) {
             <div className="flex justify-between font-bold"><span>Total</span><span>{formatTaka(order.total)}</span></div>
           </div>
           <p className="text-cocoa-600"><span className="font-semibold text-cocoa-800">Delivery to:</span> {order.address}, {order.upazila}, {order.district}, {order.division}</p>
-          <p className="text-cocoa-600"><span className="font-semibold text-cocoa-800">Payment:</span> {order.payment_method === 'COD' ? 'Cash on Delivery' : order.payment_method}</p>
+          <p className="text-cocoa-600"><span className="font-semibold text-cocoa-800">Payment:</span> {paymentLabel(order.payment_method)}</p>
         </div>
       )}
 

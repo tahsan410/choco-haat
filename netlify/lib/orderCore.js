@@ -28,7 +28,7 @@ export async function createOrderCore({ input, db, sheets, userId = null, log = 
   const payload = {
     name: c.name, phone: c.phone, email: c.email, address: c.address,
     division: c.division, district: c.district, upazila: c.upazila, note: c.note,
-    payment_method: c.paymentMethod, coupon_code: c.couponCode,
+    payment_method: c.paymentMethod, payment_sender: c.paymentSender, payment_trx_id: c.paymentTrxId, coupon_code: c.couponCode,
     items: c.items.map((i) => ({ product_id: i.productId, quantity: i.quantity })),
   };
 
