@@ -8,9 +8,12 @@ import react from '@vitejs/plugin-react';
 const ASSET_V = String(Date.now());
 const siteUrlPlugin = (siteUrl) => ({
   name: 'site-url-and-asset-version',
-  transformIndexHtml: (html) => html
-    .replaceAll('%SITE_URL%', siteUrl)
-    .replaceAll('%ASSET_V%', ASSET_V),
+  // order: 'pre' → replace the placeholders BEFORE Vite parses index.html. Otherwise Vite tries to
+  // decodeURI("/favicon.svg?v=%ASSET_V%") and fails with "URI malformed".
+  transformIndexHtml: {
+    order: 'pre',
+    handler: (html) => html.replaceAll('%SITE_URL%', siteUrl).replaceAll('%ASSET_V%', ASSET_V),
+  },
 });
 
 export default defineConfig(({ mode }) => {

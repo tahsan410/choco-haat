@@ -88,6 +88,20 @@ export function supabaseDb(client) {
       if (error) throw new Error(error.message);
       return (data || []).map(({ order_items, ...order }) => ({ order, items: order_items || [] }));
     },
+    /** Returns the Supabase auth user id for a valid access token, else null. */
+    async userIdFromToken(token) {
+      if (!token) return null;
+      const { data, error } = await client.auth.getUser(token);
+      return error || !data?.user ? null : data.user.id;
+    },
+    /** Links an order to a customer account. Only touches orders that have no owner (unless force). */
+    async setOrderUser(orderId, userId, { onlyIfUnowned = true } = {}) {
+      let q = client.from('orders').update({ user_id: userId }).eq('id', orderId);
+      if (onlyIfUnowned) q = q.is('user_id', null);
+      const { data, error } = await q.select('id');
+      if (error) throw new Error(error.message);
+      return (data || []).length > 0;
+    },
     async verifyAdmin(token) {
       if (!token) return false;
       const { data: userData, error } = await client.auth.getUser(token);
@@ -97,3 +111,5 @@ export function supabaseDb(client) {
     },
   };
 }
+
+export const bearer = (req) => (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();

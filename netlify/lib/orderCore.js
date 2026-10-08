@@ -12,7 +12,7 @@ const CODE_TO_STATUS = {
   INVALID: 400,
 };
 
-export async function createOrderCore({ input, db, sheets, log = console }) {
+export async function createOrderCore({ input, db, sheets, userId = null, log = console }) {
   // Honeypot: real users never fill this hidden field.
   if (input && typeof input === 'object' && input.website) {
     return { status: 400, body: { ok: false, code: 'INVALID', message: 'Could not process this order.' } };
@@ -49,6 +49,11 @@ export async function createOrderCore({ input, db, sheets, log = console }) {
 
   const { order, items } = result;
 
+  // Logged-in customer → remember the order in their account (best-effort; the order is already saved).
+  if (userId) {
+    try { await db.setOrderUser(order.id, userId); } catch (e) { log.error('[create-order] could not link order to account:', e?.message); }
+  }
+
   // Google Sheets is best-effort: the order is already safely stored in the database.
   let synced = false;
   let syncError = null;
@@ -81,6 +86,28 @@ export async function trackOrderCore({ input, db, log = console }) {
     return { status: 200, body: { ok: true, order: publicOrder(found.order, found.items) } };
   } catch (e) {
     log.error('[track-order] error:', e?.message);
+    return { status: 500, body: { ok: false, message: 'Something went wrong. Please try again.' } };
+  }
+}
+
+/**
+ * A logged-in customer adds a past (guest) order to their account by proving they know BOTH the
+ * Order ID and the phone number used. Same answer for "no such order" and "wrong phone".
+ */
+export async function claimOrderCore({ input, userId, db, log = console }) {
+  const notFound = { status: 404, body: { ok: false, message: 'We could not find an order with that Order ID and phone number.' } };
+  if (!userId) return { status: 401, body: { ok: false, message: 'Please sign in first.' } };
+  const orderNumber = String(input?.orderNumber || '').trim().toUpperCase();
+  const phone = normalizePhone(input?.phone);
+  if (!ORDER_NUMBER_RE.test(orderNumber) || !phone) return notFound;
+  try {
+    const found = await db.findOrderByNumber(orderNumber);
+    if (!found || normalizePhone(found.order.phone) !== phone) return notFound;
+    if (found.order.user_id && found.order.user_id !== userId) return notFound; // belongs to someone else
+    if (!found.order.user_id) await db.setOrderUser(found.order.id, userId);
+    return { status: 200, body: { ok: true, order: publicOrder(found.order, found.items) } };
+  } catch (e) {
+    log.error('[claim-order] error:', e?.message);
     return { status: 500, body: { ok: false, message: 'Something went wrong. Please try again.' } };
   }
 }
