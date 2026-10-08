@@ -94,7 +94,7 @@ export default function Home() {
                 <a href="#explore" className={buttonClasses({ variant: 'ghost', size: 'lg', className: '!text-cream ring-1 ring-inset ring-white/25 hover:!bg-white/10' })}>Explore Chocolates</a>
               </div>
             </div>
-            {loading ? <div className="mx-auto aspect-square w-full max-w-md animate-pulse rounded-[1.75rem] bg-white/10 lg:ml-auto lg:max-w-[30rem]" aria-hidden /> : slides.length ? <HeroSlideshow products={slides} className="mx-auto max-w-md lg:ml-auto lg:max-w-[30rem]" /> : <HeroArt className="mx-auto w-full max-w-md lg:max-w-none" />}
+            {loading ? <div className="mx-auto aspect-[5/4] w-full max-w-md animate-pulse rounded-[1.75rem] bg-white/10 lg:ml-auto lg:max-w-[32rem]" aria-hidden /> : slides.length ? <HeroSlideshow products={slides} className="mx-auto max-w-md lg:ml-auto lg:max-w-[32rem]" /> : <HeroArt className="mx-auto w-full max-w-md lg:max-w-none" />}
           </div>
         </div>
         <div className="mt-6 rounded-2xl border border-cocoa-100 bg-white px-5 py-4 shadow-soft"><TrustBar compact /></div>

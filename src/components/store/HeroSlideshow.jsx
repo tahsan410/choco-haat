@@ -1,36 +1,52 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-const INTERVAL = 2000;
+const INTERVAL = 2500;
+const FADE_MS = 800;
 
 /**
- * Plain auto-playing picture slideshow for the hero (no text, prices, arrows or hover effects).
+ * Plain auto-playing picture slideshow for the hero: just the pictures, cross-fading with a slow gentle zoom.
  * Pictures come from the products marked "Featured on homepage" in Admin → Products.
  */
 export default function HeroSlideshow({ products, className = '' }) {
   const n = products.length;
   const [i, setI] = useState(0);
+  const [prev, setPrev] = useState(-1);
+  const timer = useRef(null);
 
   useEffect(() => {
     if (n < 2) return undefined;
-    const t = setInterval(() => { if (!document.hidden) setI((x) => (x + 1) % n); }, INTERVAL);
+    const t = setInterval(() => {
+      if (document.hidden) return;
+      setI((cur) => { setPrev(cur); return (cur + 1) % n; });
+    }, INTERVAL);
     return () => clearInterval(t);
   }, [n]);
 
+  // the outgoing picture stays underneath until the new one has fully faded in
+  useEffect(() => {
+    if (prev < 0) return undefined;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setPrev(-1), FADE_MS + 100);
+    return () => clearTimeout(timer.current);
+  }, [prev]);
+
   if (!n) return null;
   return (
-    <div className={`relative aspect-square w-full overflow-hidden rounded-[1.75rem] bg-cocoa-900 shadow-lift ring-1 ring-white/15 ${className}`} role="img" aria-label="Featured chocolates">
-      {products.map((p, k) => (
-        <div key={p.id} aria-hidden={k !== i} className={`absolute inset-0 transition-opacity duration-700 ease-out ${k === i ? 'opacity-100' : 'opacity-0'}`}>
-          {/* soft blurred copy fills the frame whatever the photo's shape */}
-          <img src={p.image_url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" loading={k === 0 ? 'eager' : 'lazy'} decoding="async" />
+    <div className={`relative aspect-[5/4] w-full ${className}`} role="img" aria-label="Featured chocolates">
+      {products.map((p, k) => {
+        const active = k === i;
+        const visible = active || k === prev;
+        return (
           <img
-            src={p.image_url} alt={k === i ? p.name : ''}
-            width="600" height="600"
+            key={p.id}
+            src={p.image_url} alt={active ? p.name : ''} aria-hidden={!active}
+            width="640" height="512"
             loading={k === 0 ? 'eager' : 'lazy'} fetchpriority={k === 0 ? 'high' : undefined} decoding="async"
-            className="absolute inset-0 h-full w-full object-contain p-5 drop-shadow-[0_18px_28px_rgba(0,0,0,.3)] sm:p-7"
+            style={{ transitionDuration: `${FADE_MS}ms, ${INTERVAL + FADE_MS}ms` }}
+            className={`absolute inset-0 h-full w-full rounded-[1.75rem] object-cover shadow-lift transition-[opacity,transform] ease-out ${active ? 'z-10 scale-[1.04] opacity-100' : visible ? 'z-0 scale-100 opacity-100' : 'z-0 scale-100 opacity-0'}`}
           />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
