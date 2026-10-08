@@ -165,7 +165,7 @@ export default function ProductForm({ product, open, onClose }) {
         </section>
 
         <section className="flex flex-wrap gap-6 rounded-xl bg-cream px-4 py-3">
-          <Checkbox label="Featured on homepage" checked={f.is_featured} onChange={set('is_featured')} />
+          <Checkbox label="Featured on homepage (hero slideshow + Featured section)" checked={f.is_featured} onChange={set('is_featured')} />
           <Checkbox label="Active (visible in the shop)" checked={f.is_active} onChange={set('is_active')} />
         </section>
       </form>

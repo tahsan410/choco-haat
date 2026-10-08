@@ -5,6 +5,7 @@ import { useCatalog } from '../../context/CatalogContext.jsx';
 import ProductGrid from '../../components/store/ProductGrid.jsx';
 import TrustBar from '../../components/store/TrustBar.jsx';
 import HeroArt from '../../components/store/HeroArt.jsx';
+import HeroSlideshow from '../../components/store/HeroSlideshow.jsx';
 import { ProductGridSkeleton, ErrorState } from '../../components/ui/Feedback.jsx';
 import Button, { buttonClasses } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
@@ -70,6 +71,9 @@ export default function Home() {
   const countByCat = new Map();
   for (const p of products) countByCat.set(p.category_id, (countByCat.get(p.category_id) || 0) + 1);
   const featuredList = (featured.length ? featured : products).slice(0, 8);
+  // Hero slideshow: products marked "Featured on homepage" that have a photo (falls back to any product photos).
+  const withPhoto = (list) => list.filter((p) => p.image_url);
+  const slides = (withPhoto(featured).length ? withPhoto(featured) : withPhoto(products)).slice(0, 10);
 
   return (
     <>
@@ -90,7 +94,7 @@ export default function Home() {
                 <a href="#explore" className={buttonClasses({ variant: 'ghost', size: 'lg', className: '!text-cream ring-1 ring-inset ring-white/25 hover:!bg-white/10' })}>Explore Chocolates</a>
               </div>
             </div>
-            <HeroArt className="mx-auto w-full max-w-md lg:max-w-none" />
+            {loading ? <div className="mx-auto aspect-square w-full max-w-md animate-pulse rounded-[1.75rem] bg-white/10 lg:ml-auto lg:max-w-[30rem]" aria-hidden /> : slides.length ? <HeroSlideshow products={slides} className="mx-auto max-w-md lg:ml-auto lg:max-w-[30rem]" /> : <HeroArt className="mx-auto w-full max-w-md lg:max-w-none" />}
           </div>
         </div>
         <div className="mt-6 rounded-2xl border border-cocoa-100 bg-white px-5 py-4 shadow-soft"><TrustBar compact /></div>
