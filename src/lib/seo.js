@@ -18,7 +18,7 @@ export function usePageMeta({ title, description, image, path, jsonLd, noindex =
     const fullTitle = title || 'Buy Chocolate Online in Bangladesh';
     document.title = fullTitle;
     const url = SITE_URL ? `${SITE_URL}${path ?? window.location.pathname}` : window.location.href;
-    const img = image && /^https?:/.test(image) ? image : SITE_URL ? `${SITE_URL}/og-image.png` : undefined;
+    const img = image && /^https?:/.test(image) ? image : SITE_URL ? `${SITE_URL}/og-image.png${typeof __ASSET_V__ === 'undefined' ? '' : `?v=${__ASSET_V__}`}` : undefined;
 
     setMeta('name', 'description', description);
     setMeta('name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow');
