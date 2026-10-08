@@ -100,7 +100,7 @@ export default function ProductDetails() {
           {inCart > 0 && <p className="mt-3 text-sm text-cocoa-600">{inCart} in your cart · <Link to="/cart" className="font-semibold text-caramel-700 hover:underline">View cart</Link></p>}
 
           <ul className="mt-7 grid gap-3 rounded-2xl bg-white p-4 text-sm text-cocoa-700 ring-1 ring-cocoa-100 sm:grid-cols-2">
-            <li className="flex items-start gap-2"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-caramel-600" aria-hidden />Delivery from {formatTaka(settings.inside_city_charge)} · bKash &amp; Nagad</li>
+            <li className="flex items-start gap-2"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-caramel-600" aria-hidden />Delivery from {formatTaka(settings.inside_city_charge)} · bKash, Nagad &amp; COD</li>
             <li className="flex items-start gap-2"><BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-caramel-600" aria-hidden />Sealed original packaging</li>
           </ul>
 

@@ -218,6 +218,7 @@ declare
   v_discount    numeric := 0;
   v_delivery    numeric := 0;
   v_total       numeric;
+  v_method      text;
   v_inside      text;
   v_in_charge   numeric;
   v_out_charge  numeric;
@@ -306,6 +307,16 @@ begin
 
   v_total := v_subtotal - v_discount + v_delivery;
 
+  -- Cash on Delivery: the delivery fee must be paid in advance (bKash / Nagad); only the product price is cash.
+  v_method := coalesce(nullif(payload->>'payment_method', ''), 'COD');
+  if v_delivery > 0 and v_method = 'COD' then
+    return jsonb_build_object('ok', false, 'code', 'PAYMENT_REQUIRED',
+      'message', 'For Cash on Delivery, the delivery fee of ৳' || round(v_delivery)::text || ' must be paid in advance by bKash or Nagad.');
+  end if;
+  if v_delivery > 0 and v_method in ('COD_BKASH', 'COD_NAGAD') and nullif(payload->>'payment_trx_id', '') is null then
+    return jsonb_build_object('ok', false, 'code', 'PAYMENT_REQUIRED', 'message', 'Please enter the Transaction ID of your delivery fee payment.');
+  end if;
+
   -- Order number: CHOC-YYYYMMDD-0001 (day in Asia/Dhaka)
   v_day := to_char(now() at time zone 'Asia/Dhaka', 'YYYYMMDD');
   insert into public.order_counters (day_key, last_value) values (v_day, 1)
@@ -321,7 +332,7 @@ begin
     payload->>'name', v_phone, nullif(payload->>'email', ''), payload->>'address',
     payload->>'division', v_district, payload->>'upazila', nullif(payload->>'note', ''),
     v_subtotal, v_delivery, v_discount, v_total, v_code,
-    coalesce(nullif(payload->>'payment_method', ''), 'COD'),
+    v_method,
     nullif(payload->>'payment_sender', ''), nullif(upper(payload->>'payment_trx_id'), ''), 'Pending'
   ) returning * into v_order;
 

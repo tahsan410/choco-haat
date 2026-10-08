@@ -9,7 +9,7 @@ export default function FAQ() {
   const items = [
     ['How do I place an order?', 'Add chocolates to your cart, go to checkout, enter your delivery details and place the order. You receive an Order ID straight away – please save it.'],
     ['How much is delivery?', `Delivery is ${formatTaka(s.inside_city_charge)} inside ${s.inside_city_district} and ${formatTaka(s.outside_city_charge)} to the rest of Bangladesh.${free}`],
-    ['How can I pay?', 'We accept bKash and Nagad. At checkout, Send Money to the number shown, then enter your number and the Transaction ID (TrxID). We confirm your payment and then ship your order.'],
+    ['How can I pay?', 'We accept bKash, Nagad and Cash on Delivery. For bKash/Nagad, Send Money to the number shown at checkout, then enter your number and the Transaction ID (TrxID). For Cash on Delivery, pay the delivery fee in advance by bKash or Nagad, and pay the price of the chocolates in cash when your order arrives. We confirm your payment and then ship your order.'],
     ['How do I track my order?', 'Open Track Order, then enter your Order ID and the phone number you used while ordering. Both are needed to protect your privacy.'],
     ['Are the chocolates authentic?', 'Yes. We sell sealed, original products, and each product page shows weight, origin and expiry information.'],
     ['What about expiry dates?', 'Every chocolate carries its best-before date on the pack. If you receive an item that is expired or damaged, contact us immediately.'],
@@ -18,7 +18,7 @@ export default function FAQ() {
   ];
   usePageMeta({
     title: `FAQ | ${s.store_name}`,
-    description: 'Answers about ordering, delivery charges, bKash and Nagad payment, tracking and storing chocolate.',
+    description: 'Answers about ordering, delivery charges, payment options, tracking and storing chocolate.',
     jsonLd: { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: items.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
   });
   return (

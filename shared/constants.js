@@ -20,10 +20,16 @@ export const PAYMENT_METHODS = [
   // `enabled` controls checkout visibility. COD stays defined (disabled) so older orders still display.
   { id: 'BKASH', label: 'bKash', description: 'Send Money to our bKash number, then enter the Transaction ID.', enabled: true, mobile: true, settingKey: 'bkash_number', color: '#E2136E' },
   { id: 'NAGAD', label: 'Nagad', description: 'Send Money to our Nagad number, then enter the Transaction ID.', enabled: true, mobile: true, settingKey: 'nagad_number', color: '#F6921E' },
-  { id: 'COD', label: 'Cash on Delivery', description: 'Pay when your order arrives.', enabled: false },
+  // Cash on Delivery: product price in cash at the door, but the delivery fee is paid in advance via bKash/Nagad.
+  // The checkout shows ONE "Cash on Delivery" choice; the order is stored as COD_BKASH / COD_NAGAD (advance method),
+  // or plain COD when delivery is free (nothing to pay in advance).
+  { id: 'COD', label: 'Cash on Delivery', description: 'Pay for the chocolates in cash when they arrive. Delivery fee is paid in advance by bKash or Nagad.', enabled: true, cod: true },
+  { id: 'COD_BKASH', label: 'Cash on Delivery (delivery fee via bKash)', enabled: true, mobile: true, cod: true, advance: 'BKASH', hidden: true, settingKey: 'bkash_number', color: '#E2136E' },
+  { id: 'COD_NAGAD', label: 'Cash on Delivery (delivery fee via Nagad)', enabled: true, mobile: true, cod: true, advance: 'NAGAD', hidden: true, settingKey: 'nagad_number', color: '#F6921E' },
 ];
 
 export const paymentLabel = (id) => (PAYMENT_METHODS.find((m) => m.id === id)?.label) || id || '';
+export const isCodMethod = (id) => String(id || '').startsWith('COD');
 
 export const LIMITS = {
   maxLines: 30,

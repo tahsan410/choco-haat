@@ -12,7 +12,7 @@ import { Timeline } from '../store/TrackOrder.jsx';
 import { ORDER_STATUSES } from '../../../shared/constants.js';
 import { formatDateTime, formatTaka } from '../../lib/format.js';
 import { isDemo } from '../../services/api.js';
-import { paymentLabel } from '../../../shared/constants.js';
+import { paymentLabel, isCodMethod } from '../../../shared/constants.js';
 
 export default function OrderDetails() {
   const { id } = useParams();
@@ -79,7 +79,8 @@ export default function OrderDetails() {
               <div className="flex justify-between"><dt className="text-cocoa-600">Delivery charge</dt><dd className="tabular-nums">{formatTaka(order.delivery_charge)}</dd></div>
               <div className="flex justify-between border-t border-cocoa-100 pt-2 text-base font-bold"><dt>Total</dt><dd className="font-display text-xl tabular-nums">{formatTaka(order.total)}</dd></div>
               <p className="pt-1 text-xs text-cocoa-500">Payment: {paymentLabel(order.payment_method)}</p>
-              {order.payment_trx_id && <p className="rounded-lg bg-cream/80 px-3 py-2 text-sm text-cocoa-800"><span className="font-semibold">TrxID:</span> <span className="font-mono tracking-wide">{order.payment_trx_id}</span>{order.payment_sender && <> · paid from <span className="font-mono">{order.payment_sender}</span></>} · expected <strong>{formatTaka(order.total)}</strong><span className="block text-xs text-cocoa-500">Check this in your {paymentLabel(order.payment_method)} app before confirming the order.</span></p>}
+              {order.payment_trx_id && <p className="rounded-lg bg-cream/80 px-3 py-2 text-sm text-cocoa-800"><span className="font-semibold">TrxID:</span> <span className="font-mono tracking-wide">{order.payment_trx_id}</span>{order.payment_sender && <> · paid from <span className="font-mono">{order.payment_sender}</span></>} · expected <strong>{formatTaka(isCodMethod(order.payment_method) ? order.delivery_charge : order.total)}</strong>{isCodMethod(order.payment_method) ? ' (delivery fee)' : ''}<span className="block text-xs text-cocoa-500">Check this in your bKash / Nagad app before confirming the order.</span></p>}
+              {isCodMethod(order.payment_method) && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Collect in cash on delivery: {formatTaka(Math.max(0, order.total - order.delivery_charge))}</p>}
             </dl>
           </Panel>
 

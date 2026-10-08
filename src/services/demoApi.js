@@ -133,6 +133,8 @@ export const demoApi = {
     const priced = priceOrder({ lines, settings: s.settings, district: c.district, coupon });
     if (!priced.ok) throw new ApiError(priced.message, { code: priced.code, status: 409, data: { productId: priced.productId, available: priced.available } });
 
+    if (priced.deliveryCharge > 0 && c.paymentMethod === 'COD') throw new ApiError(`For Cash on Delivery, the delivery fee of ৳${priced.deliveryCharge} must be paid in advance by bKash or Nagad.`, { code: 'PAYMENT_REQUIRED', status: 422 });
+
     const day = dhakaDateKey();
     s.counters[day] = (s.counters[day] || 0) + 1;
     const id = uid();

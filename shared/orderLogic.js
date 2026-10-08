@@ -2,7 +2,7 @@
 // The Postgres function `place_order` (supabase/schema.sql) mirrors the pricing rules below and is the
 // source of truth in production. NOTHING here trusts prices coming from the browser.
 
-import { BD_LOCATIONS, LIMITS, PAYMENT_METHODS, SHEET_HEADERS } from './constants.js';
+import { BD_LOCATIONS, LIMITS, PAYMENT_METHODS, SHEET_HEADERS, paymentLabel, isCodMethod } from './constants.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SAFE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
@@ -68,7 +68,7 @@ export function validateOrderInput(raw, { requireUuidIds = false } = {}) {
   let paymentTrxId = '';
   if (method?.mobile) {
     paymentSender = normalizePhone(r.paymentSender) || '';
-    if (!paymentSender) errors.paymentSender = `Enter the ${method.label} number you paid from (01XXXXXXXXX).`;
+    if (!paymentSender) errors.paymentSender = `Enter the ${method.advance === 'NAGAD' ? 'Nagad' : method.advance === 'BKASH' ? 'bKash' : method.label} number you paid from (01XXXXXXXXX).`;
     paymentTrxId = String(r.paymentTrxId ?? '').replace(/\s+/g, '').toUpperCase();
     if (!/^[A-Z0-9]{6,20}$/.test(paymentTrxId)) errors.paymentTrxId = 'Enter the Transaction ID from your payment message (letters and numbers, 6–20 characters).';
   }
@@ -227,7 +227,7 @@ export function orderToSheetRow(order, items) {
     Number(order.subtotal),
     Number(order.delivery_charge),
     Number(order.total),
-    order.payment_method,
+    isCodMethod(order.payment_method) ? `${paymentLabel(order.payment_method)} – collect ${Math.max(0, Number(order.total) - Number(order.delivery_charge))} in cash` : paymentLabel(order.payment_method),
     order.status,
     order.payment_sender || '',
     order.payment_trx_id || '',

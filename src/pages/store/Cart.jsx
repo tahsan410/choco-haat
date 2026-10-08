@@ -76,7 +76,7 @@ export default function Cart() {
           <OrderSummary cart={cart} settings={settings} showDeliveryChoice />
           {cart.belowMinimum && <p role="alert" className="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Minimum order amount is {formatTaka(cart.minOrder)}. Add {formatTaka(cart.minOrder - cart.subtotal)} more to check out.</p>}
           <Button size="lg" className="mt-5 w-full" disabled={cart.belowMinimum} onClick={() => navigate('/checkout')}>Proceed to checkout</Button>
-          <p className="mt-3 text-center text-xs text-cocoa-500">Pay with bKash or Nagad · Final price is confirmed when you place the order.</p>
+          <p className="mt-3 text-center text-xs text-cocoa-500">bKash, Nagad or Cash on Delivery · Final price is confirmed when you place the order.</p>
         </aside>
       </div>
     </div>

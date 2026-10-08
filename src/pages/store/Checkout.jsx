@@ -28,15 +28,21 @@ export default function Checkout() {
   const navigate = useNavigate();
   usePageMeta({ title: `Checkout | ${settings.store_name}`, description: 'Complete your chocolate order.', noindex: true });
 
-  const methods = PAYMENT_METHODS.filter((m) => m.enabled);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', division: '', district: '', upazila: '', note: '', paymentMethod: methods[0].id, paymentSender: '', paymentTrxId: '', website: '' });
+  const methods = PAYMENT_METHODS.filter((m) => m.enabled && !m.hidden);
+  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', division: '', district: '', upazila: '', note: '', paymentMethod: methods[0].id, codAdvance: 'BKASH', paymentSender: '', paymentTrxId: '', website: '' });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
   const [copied, setCopied] = useState(false);
-  const selected = methods.find((m) => m.id === form.paymentMethod) || methods[0];
-  const payNumber = selected?.settingKey ? String(settings[selected.settingKey] || '').trim() : '';
+  // Cash on Delivery: the delivery fee is paid in advance by bKash / Nagad, the chocolates in cash at the door.
+  const isCod = form.paymentMethod === 'COD';
+  const advanceNeeded = isCod && cart.delivery > 0;
+  const effectiveId = isCod ? (advanceNeeded ? `COD_${form.codAdvance}` : 'COD') : form.paymentMethod;
+  const eff = PAYMENT_METHODS.find((m) => m.id === effectiveId) || methods[0];
+  const brand = PAYMENT_METHODS.find((m) => m.id === (eff.advance || eff.id))?.label || eff.label;
+  const payAmount = isCod ? cart.delivery : cart.total;
+  const payNumber = eff?.settingKey ? String(settings[eff.settingKey] || '').trim() : '';
   const copyNumber = async () => {
     try { await navigator.clipboard.writeText(payNumber); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* clipboard blocked – number is visible anyway */ }
   };
@@ -80,7 +86,7 @@ export default function Checkout() {
   const submit = async (e) => {
     e.preventDefault();
     setFormError('');
-    const payload = { ...form, couponCode: cart.coupon, items: cart.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })) };
+    const payload = { ...form, paymentMethod: effectiveId, ...(eff.mobile ? {} : { paymentSender: '', paymentTrxId: '' }), couponCode: cart.coupon, items: cart.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })) };
     const v = validateOrderInput(payload);
     if (!v.ok) {
       setErrors(v.errors);
@@ -150,12 +156,31 @@ export default function Checkout() {
                 </label>
               ))}
             </div>
-            {selected?.mobile && (
-              <div className="mt-4 rounded-xl border p-4" style={{ borderColor: selected.color, background: `${selected.color}0F` }}>
-                <p className="text-sm font-semibold text-cocoa-800">How to pay with {selected.label}</p>
+            {isCod && !advanceNeeded && (
+              <p className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800">Delivery is free on this order, so there is nothing to pay in advance. Pay {formatTaka(cart.total)} in cash when it arrives.</p>
+            )}
+            {advanceNeeded && (
+              <div className="mt-4 rounded-xl border border-cocoa-200 bg-cream/60 p-4 text-sm text-cocoa-700">
+                <p className="font-semibold text-cocoa-900">Pay the delivery fee ({formatTaka(cart.delivery)}) now. Pay {formatTaka(cart.total - cart.delivery)} in cash on delivery.</p>
+                <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Pay the delivery fee with">
+                  {['BKASH', 'NAGAD'].map((id) => {
+                    const m = PAYMENT_METHODS.find((x) => x.id === id);
+                    return (
+                      <label key={id} className={`flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 font-medium ${form.codAdvance === id ? 'border-caramel-600 bg-caramel-50 text-cocoa-900' : 'border-cocoa-200 bg-white'}`}>
+                        <input type="radio" name="codAdvance" value={id} checked={form.codAdvance === id} onChange={set('codAdvance')} className="text-caramel-600 focus:ring-caramel-500" />
+                        Pay delivery fee via {m.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {eff?.mobile && (
+              <div className="mt-4 rounded-xl border p-4" style={{ borderColor: eff.color, background: `${eff.color}0F` }}>
+                <p className="text-sm font-semibold text-cocoa-800">How to pay {isCod ? 'the delivery fee' : ''} with {brand}</p>
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-cocoa-700">
-                  <li>Open your {selected.label} app and choose <strong>Send Money</strong>.</li>
-                  <li>Send <strong>{formatTaka(cart.total)}</strong> to the number below.</li>
+                  <li>Open your {brand} app and choose <strong>Send Money</strong>.</li>
+                  <li>Send <strong>{formatTaka(payAmount)}</strong> to the number below.</li>
                   <li>Copy the <strong>Transaction ID</strong> (TrxID) from the confirmation and enter it here.</li>
                 </ol>
                 {payNumber ? (
@@ -166,10 +191,10 @@ export default function Checkout() {
                     </button>
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm font-medium text-red-700">{selected.label} number is not set yet. Please call {settings.contact_phone} to place this order.</p>
+                  <p className="mt-3 text-sm font-medium text-red-700">{brand} number is not set yet. Please call {settings.contact_phone} to place this order.</p>
                 )}
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <Input label={`Your ${selected.label} number`} required type="tel" inputMode="tel" value={form.paymentSender} onChange={set('paymentSender')} error={errors.paymentSender} placeholder="01XXXXXXXXX" hint="The number you sent money from." />
+                  <Input label={`Your ${brand} number`} required type="tel" inputMode="tel" value={form.paymentSender} onChange={set('paymentSender')} error={errors.paymentSender} placeholder="01XXXXXXXXX" hint="The number you sent money from." />
                   <Input label="Transaction ID (TrxID)" required value={form.paymentTrxId} onChange={(e) => set('paymentTrxId')({ target: { value: e.target.value.toUpperCase() } })} error={errors.paymentTrxId} placeholder="e.g. 9H7K2LM4QP" autoCapitalize="characters" autoComplete="off" />
                 </div>
                 <p className="mt-3 text-xs text-cocoa-600">We confirm your payment before shipping. Wrong or reused TrxIDs delay the order.</p>
