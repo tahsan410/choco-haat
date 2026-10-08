@@ -11,6 +11,9 @@ import TrackOrder from './pages/store/TrackOrder.jsx';
 import About from './pages/store/About.jsx';
 import Contact from './pages/store/Contact.jsx';
 import FAQ from './pages/store/FAQ.jsx';
+import Account from './pages/store/Account.jsx';
+import AccountAuth from './pages/store/AccountAuth.jsx';
+import AccountReset from './pages/store/AccountReset.jsx';
 import NotFound from './pages/store/NotFound.jsx';
 import { Spinner } from './components/ui/Feedback.jsx';
 import { isConfigured } from './services/api.js';
@@ -59,6 +62,10 @@ export default function App() {
             <Route path="about" element={<About />} />
             <Route path="contact" element={<Contact />} />
             <Route path="faq" element={<FAQ />} />
+            <Route path="account" element={<Account />} />
+            <Route path="account/login" element={<AccountAuth mode="login" />} />
+            <Route path="account/register" element={<AccountAuth mode="register" />} />
+            <Route path="account/reset" element={<AccountReset />} />
             <Route path="*" element={<NotFound />} />
           </Route>
           <Route path="admin/login" element={<AdminLogin />} />

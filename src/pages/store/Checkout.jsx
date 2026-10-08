@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { useCustomer } from '../../context/CustomerContext.jsx';
 import ProductImage from '../../components/store/ProductImage.jsx';
 import { OrderSummary } from './Cart.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -22,6 +23,7 @@ export default function Checkout() {
   const cart = useCart();
   const { settings, refresh, loading } = useCatalog();
   const toast = useToast();
+  const { customer, profile, saveProfile } = useCustomer();
   const navigate = useNavigate();
   usePageMeta({ title: `Checkout | ${settings.store_name}`, description: 'Complete your chocolate order.', noindex: true });
 
@@ -36,6 +38,27 @@ export default function Checkout() {
     setForm((f) => ({ ...f, [k]: value, ...(k === 'division' ? { district: '' } : {}) }));
     setErrors((er) => ({ ...er, [k]: undefined, ...(k === 'division' ? { district: undefined } : {}) }));
   };
+
+  // Signed-in customers: fill empty fields from their saved details (never overwrites what they typed).
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (!customer || prefilled.current) return;
+    prefilled.current = true;
+    setForm((f) => {
+      const div = profile?.division && BD_LOCATIONS[profile.division] ? profile.division : '';
+      const dist = div && BD_LOCATIONS[div].includes(profile?.district) ? profile.district : '';
+      return {
+        ...f,
+        name: f.name || profile?.full_name || customer.name || '',
+        phone: f.phone || profile?.phone || '',
+        email: f.email || customer.email || '',
+        address: f.address || profile?.address || '',
+        division: f.division || div,
+        district: f.district || dist,
+        upazila: f.upazila || profile?.upazila || '',
+      };
+    });
+  }, [customer, profile]);
 
   // The delivery charge in the summary follows the district the customer picks.
   useEffect(() => { cart.setDistrict(form.district || cart.district); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [form.district]);
@@ -63,6 +86,8 @@ export default function Checkout() {
     try {
       const { order } = await api.createOrder(payload);
       sessionStorage.setItem(LAST_ORDER_KEY, JSON.stringify(order));
+      // First order of a signed-in customer: remember the delivery details for next time.
+      if (customer && !profile) saveProfile({ name: v.value.name, phone: v.value.phone, address: v.value.address, division: v.value.division, district: v.value.district, upazila: v.value.upazila }).catch(() => {});
       cart.clear();
       refresh();
       navigate('/order-success', { state: { order }, replace: true });

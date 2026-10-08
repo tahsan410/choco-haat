@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Menu, Search, ShoppingBag, X, ChevronDown } from 'lucide-react';
+import { Menu, Search, ShoppingBag, X, ChevronDown, User } from 'lucide-react';
 import Logo from './Logo.jsx';
 import SearchBox from './SearchBox.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCatalog } from '../../context/CatalogContext.jsx';
+import { useCustomer } from '../../context/CustomerContext.jsx';
 
 const link = ({ isActive }) => `rounded-full px-3.5 py-2 text-sm font-medium transition ${isActive ? 'bg-cocoa-800 text-cream' : 'text-cocoa-700 hover:bg-cocoa-50 hover:text-cocoa-900'}`;
 
@@ -16,6 +17,16 @@ export function CartButton({ className = '' }) {
       {count > 0 && (
         <span key={bump} className="absolute -right-0.5 -top-0.5 grid h-5 min-w-[1.25rem] animate-cart-bump place-items-center rounded-full bg-caramel-600 px-1 text-[11px] font-bold text-white">{count}</span>
       )}
+    </Link>
+  );
+}
+
+function AccountButton() {
+  const { customer } = useCustomer();
+  return (
+    <Link to={customer ? '/account' : '/account/login'} className="relative grid h-11 w-11 place-items-center rounded-full text-cocoa-800 transition hover:bg-cocoa-50" aria-label={customer ? 'My account' : 'Sign in'} title={customer ? 'My account' : 'Sign in'}>
+      <User className="h-[22px] w-[22px]" aria-hidden />
+      {customer && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-cream" aria-hidden />}
     </Link>
   );
 }
@@ -64,6 +75,7 @@ export default function Header() {
         <div className="ml-auto flex items-center gap-1">
           <SearchBox className="mr-1 hidden w-64 xl:block" />
           <button className="grid h-11 w-11 place-items-center rounded-full text-cocoa-800 hover:bg-cocoa-50 xl:hidden" onClick={() => setSearch((s) => !s)} aria-label="Search" aria-expanded={search}><Search className="h-[22px] w-[22px]" /></button>
+          <AccountButton />
           <CartButton />
         </div>
       </div>
@@ -73,7 +85,7 @@ export default function Header() {
       {menu && (
         <nav className="animate-fade-in border-t border-cocoa-100 bg-cream lg:hidden" aria-label="Mobile">
           <ul className="container-x grid gap-1 py-3">
-            {[['/', 'Home'], ['/shop', 'Shop'], ['/about', 'About Us'], ['/contact', 'Contact'], ['/faq', 'FAQ'], ['/track-order', 'Track Order']].map(([to, label]) => (
+            {[['/', 'Home'], ['/shop', 'Shop'], ['/about', 'About Us'], ['/contact', 'Contact'], ['/faq', 'FAQ'], ['/track-order', 'Track Order'], ['/account', 'My Account']].map(([to, label]) => (
               <li key={to}><NavLink to={to} end className={({ isActive }) => `block rounded-xl px-4 py-3 text-base font-medium ${isActive ? 'bg-cocoa-800 text-cream' : 'text-cocoa-800 hover:bg-cocoa-50'}`}>{label}</NavLink></li>
             ))}
             {categories.length > 0 && (

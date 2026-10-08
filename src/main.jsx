@@ -6,6 +6,7 @@ import { ToastProvider } from './context/ToastContext.jsx';
 import { CatalogProvider } from './context/CatalogContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { CustomerProvider } from './context/CustomerContext.jsx';
 import './index.css';
 
 class ErrorBoundary extends React.Component {
@@ -31,7 +32,9 @@ createRoot(document.getElementById('root')).render(
           <CatalogProvider>
             <CartProvider>
               <AuthProvider>
-                <App />
+                <CustomerProvider>
+                  <App />
+                </CustomerProvider>
               </AuthProvider>
             </CartProvider>
           </CatalogProvider>

@@ -10,5 +10,5 @@ export const supabaseConfigured = Boolean(url && anon);
 
 // Only the public anon key is ever used in the browser. Row Level Security protects the data.
 export const supabase = supabaseConfigured
-  ? createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
+  ? createClient(url, anon, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
   : null;

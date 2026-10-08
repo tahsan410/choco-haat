@@ -47,9 +47,26 @@ async function callFunction(name, body, token) {
 }
 
 async function accessToken() {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token;
+  } catch { return undefined; }
 }
+
+const authMessage = (error) => {
+  const m = String(error?.message || '');
+  if (/already registered|already been registered/i.test(m)) return 'An account with this email already exists. Please sign in.';
+  if (/not confirmed/i.test(m)) return 'Please confirm your email first – check your inbox for the link we sent.';
+  if (/invalid login/i.test(m)) return 'Incorrect email or password.';
+  if (/password/i.test(m) && /(least|short|weak)/i.test(m)) return 'Choose a stronger password (at least 6 characters).';
+  if (/rate limit|too many/i.test(m)) return 'Too many attempts. Please wait a few minutes and try again.';
+  return 'Something went wrong. Please try again.';
+};
+const normCustomerOrder = (o) => ({
+  ...o,
+  subtotal: num(o.subtotal), delivery_charge: num(o.delivery_charge), discount: num(o.discount), total: num(o.total),
+  items: (o.items || []).map((i) => ({ ...i, unit_price: num(i.unit_price), line_total: num(i.line_total) })),
+});
 
 export const supabaseApi = {
   mode: 'supabase',
@@ -76,11 +93,75 @@ export const supabaseApi = {
     return error ? [] : data;
   },
   async createOrder(input) {
-    const data = await callFunction('create-order', input);
+    // A signed-in customer's token (if any) links the order to their account; guests send none.
+    const data = await callFunction('create-order', input, await accessToken());
     return { order: data.order, sheetSynced: data.sheetSynced };
   },
   async trackOrder(input) {
     const data = await callFunction('track-order', input);
+    return data.order;
+  },
+
+  // ───────────── Customer accounts (email + password) ─────────────
+  async customerSession() {
+    const { data } = await supabase.auth.getSession();
+    const u = data.session?.user;
+    return u ? { id: u.id, email: u.email, name: u.user_metadata?.full_name || '' } : null;
+  },
+  async customerSignUp({ email, password, name }) {
+    const { data, error } = await supabase.auth.signUp({
+      email: String(email).trim(), password,
+      options: { data: { full_name: String(name || '').trim().slice(0, 80) }, emailRedirectTo: `${window.location.origin}/account` },
+    });
+    if (error) throw new ApiError(authMessage(error), { code: 'AUTH' });
+    // Supabase hides "already registered" by returning a user with no identities.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      throw new ApiError('An account with this email already exists. Please sign in.', { code: 'AUTH' });
+    }
+    return data.session
+      ? { user: { id: data.user.id, email: data.user.email, name: String(name || '') }, needsConfirmation: false }
+      : { user: null, needsConfirmation: true };
+  },
+  async customerSignIn(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email: String(email).trim(), password });
+    if (error) throw new ApiError(authMessage(error), { code: 'AUTH' });
+    return { id: data.user.id, email: data.user.email, name: data.user.user_metadata?.full_name || '' };
+  },
+  async customerSignOut() { await supabase.auth.signOut(); },
+  async customerResetPassword(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(String(email).trim(), { redirectTo: `${window.location.origin}/account/reset` });
+    if (error) throw new ApiError(authMessage(error), { code: 'AUTH' });
+  },
+  async customerUpdatePassword(password) {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw new ApiError(authMessage(error), { code: 'AUTH' });
+  },
+  async customerGetProfile() {
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
+    if (!uid) return null;
+    const res = await supabase.from('customer_profiles').select('*').eq('user_id', uid).maybeSingle();
+    return res.error ? null : res.data;
+  },
+  async customerSaveProfile(profile) {
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
+    if (!uid) throw new ApiError('Please sign in again.', { code: 'AUTH' });
+    const row = {
+      user_id: uid, full_name: profile.name || null, phone: profile.phone || null, address: profile.address || null,
+      division: profile.division || null, district: profile.district || null, upazila: profile.upazila || null,
+      updated_at: new Date().toISOString(),
+    };
+    check(await supabase.from('customer_profiles').upsert(row));
+    return row;
+  },
+  async customerOrders() {
+    const { data, error } = await supabase.rpc('get_my_orders');
+    if (error) throw new ApiError('Could not load your orders. Please try again.', { code: 'DB' });
+    return (data || []).map(normCustomerOrder);
+  },
+  async customerClaimOrder({ orderNumber, phone }) {
+    const data = await callFunction('claim-order', { orderNumber, phone }, await accessToken());
     return data.order;
   },
 

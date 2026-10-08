@@ -4,6 +4,7 @@ import { CheckCircle2, Copy, Check } from 'lucide-react';
 import Button from '../../components/ui/Button.jsx';
 import { StatusBadge } from '../../components/ui/Badge.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { useCustomer } from '../../context/CustomerContext.jsx';
 import { formatTaka, formatDateTime } from '../../lib/format.js';
 import { usePageMeta } from '../../lib/seo.js';
 import { LAST_ORDER_KEY } from './Checkout.jsx';
@@ -11,6 +12,7 @@ import { LAST_ORDER_KEY } from './Checkout.jsx';
 export default function OrderSuccess() {
   const { state } = useLocation();
   const toast = useToast();
+  const { customer, loading: authLoading } = useCustomer();
   const [copied, setCopied] = useState(false);
   usePageMeta({ title: 'Order placed', description: 'Your order has been received.', noindex: true });
 
@@ -58,6 +60,19 @@ export default function OrderSuccess() {
             <div className="flex justify-between border-t border-cocoa-100 pt-2 text-base font-bold"><span>Total to pay</span><span className="font-display text-xl">{formatTaka(order.total)}</span></div>
           </div>
         </div>
+
+        {!authLoading && (customer ? (
+          <p className="mt-6 rounded-2xl bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-900">This order is saved in <Link to="/account" className="font-semibold underline">your account</Link>.</p>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-cocoa-100 bg-white p-5 text-center">
+            <p className="font-display text-lg font-semibold">Keep track of all your orders</p>
+            <p className="mt-1 text-sm text-cocoa-600">Create a free account to see this and future orders in one place, and check out faster next time.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Button to="/account/register" size="sm" variant="primary" state={{ claim: { orderNumber: order.order_number, phone: order.phone }, name: order.customer_name, from: '/account' }}>Create account</Button>
+              <Button to="/account/login" size="sm" variant="ghost" state={{ claim: { orderNumber: order.order_number, phone: order.phone }, from: '/account' }}>I already have one</Button>
+            </div>
+          </div>
+        ))}
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button to={`/track-order?order=${encodeURIComponent(order.order_number)}`} variant="dark" size="lg">Track Order</Button>

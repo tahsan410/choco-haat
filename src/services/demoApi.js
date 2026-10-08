@@ -9,11 +9,12 @@ import { validateOrderInput, priceOrder, dhakaDateKey, formatOrderNumber, normal
 
 const KEY = 'chocohaat.demo.v1';
 const SESSION_KEY = 'chocohaat.demo.session';
+const CUSTOMER_KEY = 'chocohaat.demo.customer';
 
 const memory = new Map();
 const store = {
   get(k) { try { return globalThis.localStorage?.getItem(k) ?? memory.get(k) ?? null; } catch { return memory.get(k) ?? null; } },
-  set(k, v) { try { globalThis.localStorage?.setItem(k, v); } catch { memory.set(k, v); } },
+  set(k, v) { memory.set(k, v); try { globalThis.localStorage?.setItem(k, v); } catch { /* memory copy is used */ } },
   del(k) { try { globalThis.localStorage?.removeItem(k); } catch { /* ignore */ } memory.delete(k); },
 };
 const session = {
@@ -34,7 +35,7 @@ function seed() {
     const { category, featured, ...rest } = p;
     return { ...rest, id: `p-${p.slug}`, category_id: `cat-${category}`, is_featured: featured, is_active: true, low_stock_threshold: 5, image_url: null, images: [], created_at: new Date(created - i * 3600_000).toISOString(), updated_at: nowIso() };
   });
-  return { categories, products, orders: [], coupons: [], settings: { ...DEFAULT_SETTINGS }, counters: {}, adminAuth: null };
+  return { categories, products, orders: [], coupons: [], settings: { ...DEFAULT_SETTINGS }, counters: {}, adminAuth: null, customers: [] };
 }
 
 let state = null;
@@ -48,7 +49,7 @@ function save() {
   try { store.set(KEY, JSON.stringify(state)); } catch { /* storage full */ }
 }
 /** Test helper. */
-export function _resetDemoState() { state = null; store.del(KEY); session.del(); }
+export function _resetDemoState() { state = null; store.del(KEY); store.del(CUSTOMER_KEY); session.del(); }
 
 async function sha256(text) {
   const buf = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -56,6 +57,22 @@ async function sha256(text) {
 }
 
 const requireAdmin = () => { if (!session.get()) throw new ApiError('Please sign in again.', { code: 'AUTH' }); };
+
+const currentCustomerId = () => store.get(CUSTOMER_KEY) || null;
+const customerView = (c) => ({ id: c.id, email: c.email, name: c.name || '' });
+const customerOrderView = (o) => ({
+  order_number: o.order_number, status: o.status, created_at: o.created_at, customer_name: o.customer_name, phone: o.phone,
+  address: o.address, upazila: o.upazila, district: o.district, division: o.division, payment_method: o.payment_method,
+  subtotal: o.subtotal, delivery_charge: o.delivery_charge, discount: o.discount || 0, total: o.total,
+  items: o.items.map((i) => ({ product_id: i.product_id, product_name: i.product_name, quantity: i.quantity, unit_price: i.unit_price, line_total: i.line_total })),
+});
+const requireCustomer = () => {
+  const id = currentCustomerId();
+  const c = id && (load().customers || []).find((x) => x.id === id);
+  if (!c) throw new ApiError('Please sign in again.', { code: 'AUTH' });
+  return c;
+};
+const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const withItems = (o) => ({ ...o, items: o.items.map((i) => ({ ...i })) });
 
@@ -125,6 +142,7 @@ export const demoApi = {
       division: c.division, district: c.district, upazila: c.upazila, delivery_note: c.note || null,
       subtotal: priced.subtotal, delivery_charge: priced.deliveryCharge, discount: priced.discount, total: priced.total,
       coupon_code: coupon ? coupon.code : null, payment_method: c.paymentMethod, status: 'Pending', is_archived: false,
+      user_id: currentCustomerId(),
       sheet_synced: false, sheet_sync_error: 'Demo mode – Google Sheets sync is disabled.',
       created_at: nowIso(), updated_at: nowIso(),
       items: priced.items.map((i) => ({ id: uid(), order_id: id, ...i })),
@@ -144,6 +162,68 @@ export const demoApi = {
     if (!ORDER_NUMBER_RE.test(num) || !ph) throw fail();
     const o = s.orders.find((x) => x.order_number === num);
     if (!o || o.phone !== ph) throw fail();
+    return publicOrder(o, o.items);
+  },
+
+  // ───────────── Customer accounts (demo) ─────────────
+  async customerSession() {
+    const id = currentCustomerId();
+    const c = id && (load().customers || []).find((x) => x.id === id);
+    return c ? customerView(c) : null;
+  },
+  async customerSignUp({ email, password, name }) {
+    const s = load();
+    s.customers = s.customers || [];
+    const mail = String(email || '').trim().toLowerCase();
+    if (!EMAIL_OK.test(mail)) throw new ApiError('Enter a valid email address.', { code: 'AUTH' });
+    if (String(password || '').length < 6) throw new ApiError('Choose a stronger password (at least 6 characters).', { code: 'AUTH' });
+    if (s.customers.some((c) => c.email === mail)) throw new ApiError('An account with this email already exists. Please sign in.', { code: 'AUTH' });
+    const salt = uid();
+    const c = { id: uid(), email: mail, name: String(name || '').trim().slice(0, 80), salt, hash: await sha256(salt + password), profile: null };
+    s.customers.push(c);
+    store.set(CUSTOMER_KEY, c.id);
+    save();
+    return { user: customerView(c), needsConfirmation: false };
+  },
+  async customerSignIn(email, password) {
+    const s = load();
+    const mail = String(email || '').trim().toLowerCase();
+    const c = (s.customers || []).find((x) => x.email === mail);
+    if (!c || c.hash !== (await sha256(c.salt + password))) throw new ApiError('Incorrect email or password.', { code: 'AUTH' });
+    store.set(CUSTOMER_KEY, c.id);
+    return customerView(c);
+  },
+  async customerSignOut() { store.del(CUSTOMER_KEY); },
+  async customerResetPassword() { throw new ApiError('Password reset by email is not available in demo mode.', { code: 'AUTH' }); },
+  async customerUpdatePassword() { throw new ApiError('Not available in demo mode.', { code: 'AUTH' }); },
+  async customerGetProfile() {
+    const id = currentCustomerId();
+    const c = id && (load().customers || []).find((x) => x.id === id);
+    return c ? c.profile : null;
+  },
+  async customerSaveProfile(profile) {
+    const c = requireCustomer();
+    c.profile = {
+      full_name: profile.name || null, phone: profile.phone || null, address: profile.address || null,
+      division: profile.division || null, district: profile.district || null, upazila: profile.upazila || null,
+    };
+    save();
+    return c.profile;
+  },
+  async customerOrders() {
+    const c = requireCustomer();
+    return clone(load().orders.filter((o) => o.user_id === c.id).map(customerOrderView));
+  },
+  async customerClaimOrder({ orderNumber, phone }) {
+    const c = requireCustomer();
+    const num = String(orderNumber || '').trim().toUpperCase();
+    const ph = normalizePhone(phone);
+    const fail = () => new ApiError('We could not find an order with that Order ID and phone number.', { code: 'NOT_FOUND', status: 404 });
+    if (!ORDER_NUMBER_RE.test(num) || !ph) throw fail();
+    const o = load().orders.find((x) => x.order_number === num);
+    if (!o || o.phone !== ph || (o.user_id && o.user_id !== c.id)) throw fail();
+    o.user_id = c.id;
+    save();
     return publicOrder(o, o.items);
   },
 
