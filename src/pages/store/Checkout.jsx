@@ -8,6 +8,7 @@ import { useCustomer } from '../../context/CustomerContext.jsx';
 import ProductImage from '../../components/store/ProductImage.jsx';
 import { OrderSummary } from './Cart.jsx';
 import Button from '../../components/ui/Button.jsx';
+import AccountNudge from '../../components/store/AccountNudge.jsx';
 import { Input, Select, Textarea } from '../../components/ui/Field.jsx';
 import { EmptyState } from '../../components/ui/Feedback.jsx';
 import { api } from '../../services/api.js';
@@ -105,6 +106,7 @@ export default function Checkout() {
   return (
     <div className="container-x py-8 sm:py-10">
       <h1 className="h-page">Checkout</h1>
+      <AccountNudge className="mt-5" />
       <form onSubmit={submit} noValidate className="mt-8 grid gap-8 lg:grid-cols-[1fr_400px]">
         <div className="space-y-6">
           <section className="card p-5 sm:p-6" aria-labelledby="cust">

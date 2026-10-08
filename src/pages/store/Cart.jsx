@@ -5,6 +5,7 @@ import { useCatalog } from '../../context/CatalogContext.jsx';
 import ProductImage from '../../components/store/ProductImage.jsx';
 import QuantityStepper from '../../components/store/QuantityStepper.jsx';
 import Button from '../../components/ui/Button.jsx';
+import AccountNudge from '../../components/store/AccountNudge.jsx';
 import { EmptyState } from '../../components/ui/Feedback.jsx';
 import { formatTaka } from '../../lib/format.js';
 import { usePageMeta } from '../../lib/seo.js';
@@ -47,6 +48,7 @@ export default function Cart() {
   return (
     <div className="container-x py-8 sm:py-10">
       <h1 className="h-page">Your cart</h1>
+      <AccountNudge className="mt-5" />
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
         <ul className="space-y-3">
           {cart.lines.map(({ product, quantity }) => (
